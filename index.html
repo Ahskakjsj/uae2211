@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>محرك الزعابي لفحص التريقرات</title>
+    <meta name="description" content="A high-performance browser-based auditing tool for FiveM server resources. Scan ZIP files to discover TriggerServerEvent, TriggerClientEvent, and NetEvents, analyze implementation security, and export results." />
+    <meta property="og:title" content="محرك الزعابي لفحص التريقرات" />
+    <meta property="og:description" content="A high-performance browser-based auditing tool for FiveM server resources. Scan ZIP files to discover TriggerServerEvent, TriggerClientEvent, and NetEvents, analyze implementation security, and export results." />
+    <script>
+      (function() {
+        // Fix for iframe hostPort.postMessage passing non-transferable objects as transfer sequence (prevents Firefox TypeError -> window.onerror -> recursion loop)
+        if (typeof MessagePort !== 'undefined' && MessagePort.prototype && MessagePort.prototype.postMessage) {
+          var _origPortPostMessage = MessagePort.prototype.postMessage;
+          MessagePort.prototype.postMessage = function(message, transfer) {
+            if (transfer !== undefined) {
+              if (!Array.isArray(transfer) && !(transfer && typeof transfer[Symbol.iterator] === 'function')) {
+                return _origPortPostMessage.call(this, message);
+              }
+            }
+            return _origPortPostMessage.apply(this, arguments);
+          };
+        }
+        if (typeof window !== 'undefined' && window.postMessage) {
+          var _origWinPostMessage = window.postMessage;
+          window.postMessage = function(message, targetOrigin, transfer) {
+            if (transfer !== undefined && !Array.isArray(transfer) && !(transfer && typeof transfer[Symbol.iterator] === 'function')) {
+              return _origWinPostMessage.call(this, message, targetOrigin);
+            }
+            return _origWinPostMessage.apply(this, arguments);
+          };
+        }
+
+        // Filter benign Vite websocket errors to prevent triggering error reporting cascades
+        var _origConsoleError = console.error;
+        console.error = function() {
+          var msg = '';
+          try { msg = Array.prototype.slice.call(arguments).map(String).join(' '); } catch(e) {}
+          if (msg.indexOf('failed to connect to websocket') !== -1 || (msg.indexOf('vite') !== -1 && msg.indexOf('ws') !== -1)) {
+            return;
+          }
+          return _origConsoleError.apply(console, arguments);
+        };
+
+        var _origConsoleWarn = console.warn;
+        console.warn = function() {
+          var msg = '';
+          try { msg = Array.prototype.slice.call(arguments).map(String).join(' '); } catch(e) {}
+          if (msg.indexOf('failed to connect to websocket') !== -1 || (msg.indexOf('vite') !== -1 && msg.indexOf('ws') !== -1)) {
+            return;
+          }
+          return _origConsoleWarn.apply(console, arguments);
+        };
+
+        // Break any potential recursion in error listeners
+        var isHandlingError = false;
+        window.addEventListener('error', function(e) {
+          if (isHandlingError) {
+            if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+            if (e && e.preventDefault) e.preventDefault();
+            return;
+          }
+          var msg = (e && e.message) ? String(e.message) : '';
+          if (msg.indexOf('recursion') !== -1 || msg.indexOf('stack') !== -1 || msg.indexOf('iterable') !== -1) {
+            if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+            if (e && e.preventDefault) e.preventDefault();
+            return;
+          }
+          isHandlingError = true;
+          setTimeout(function() { isHandlingError = false; }, 200);
+        }, true);
+
+        // Alzaabi Shield: Early Anti-F12 & Anti-Inspect & Anti-RightClick
+        document.addEventListener('contextmenu', function(e) {
+          if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+          e.preventDefault();
+          e.stopPropagation();
+          try { window.dispatchEvent(new CustomEvent('alzaabi-security-blocked', { detail: { reason: 'right-click' } })); } catch(err) {}
+          return false;
+        }, true);
+
+        window.addEventListener('keydown', function(e) {
+          if (e.key === 'F12' || e.keyCode === 123) {
+            e.preventDefault();
+            e.stopPropagation();
+            try { window.dispatchEvent(new CustomEvent('alzaabi-security-blocked', { detail: { reason: 'f12' } })); } catch(err) {}
+            return false;
+          }
+          var isCtrl = e.ctrlKey || e.metaKey;
+          if (isCtrl && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c' || e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
+            e.preventDefault();
+            e.stopPropagation();
+            try { window.dispatchEvent(new CustomEvent('alzaabi-security-blocked', { detail: { reason: 'inspect' } })); } catch(err) {}
+            return false;
+          }
+          if (isCtrl && (e.key === 'u' || e.key === 'U' || e.keyCode === 85)) {
+            e.preventDefault();
+            e.stopPropagation();
+            try { window.dispatchEvent(new CustomEvent('alzaabi-security-blocked', { detail: { reason: 'view-source' } })); } catch(err) {}
+            return false;
+          }
+          if (isCtrl && (e.key === 's' || e.key === 'S' || e.keyCode === 83)) {
+            e.preventDefault();
+            e.stopPropagation();
+            try { window.dispatchEvent(new CustomEvent('alzaabi-security-blocked', { detail: { reason: 'save-page' } })); } catch(err) {}
+            return false;
+          }
+        }, true);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
